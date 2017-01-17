@@ -5,7 +5,13 @@ import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
+import org.neo4j.driver.v1.*;
+import org.neo4j.driver.v1.types.Node;
+import org.neo4j.driver.v1.types.Relationship;
 
+import static org.neo4j.driver.v1.Values.parameters;
+
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -13,14 +19,47 @@ public class Neo4JRepository {
     private final Driver driver;
 
     public Neo4JRepository() {
-        driver = GraphDatabase.driver("bolt://localhost:7687", AuthTokens.basic("neo4j", "password"));
+        driver = GraphDatabase.driver("bolt://localhost:7687", AuthTokens.basic("neo4j", "cardou"));
     }
 
     public List<?> getConnectionsToKevinBacon(String actorName) {
         Session session = driver.session();
+        StatementResult result = session.run("MATCH p=shortestPath(\n" +
+                "  (bacon:Actors {name: \"Bacon, Kevin (I)\"})-[*]-(relation:Actors {name: actorName})\n" +
+                ")\n" +
+                "RETURN p");
 
-        // TODO implement Oracle of Bacon
-        return null;
+        List<GraphItem> graph = new ArrayList<GraphItem>() ;
+
+        System.out.println(result.toString()) ;
+
+        while (result.hasNext()) {
+            Record record = result.next() ;
+            GraphItem item ;
+
+            for (Value value:record.get("nodes").values()) {
+                Node node = value.asNode();
+
+                if (node.containsKey("name")) {
+                    item = new GraphNode(node.id(), node.get("name").asString(), "Actors");
+                } else {
+                    item = new GraphNode(node.id(), node.get("title").asString(), "Movies");
+                }
+                graph.add(item);
+            }
+
+            for (Value value:record.get("relations").values()) {
+                Relationship relation = value.asRelationship();
+
+                item = new GraphEdge(relation.id(), relation.startNodeId(), relation.endNodeId(), "PLAYED_IN") ;
+
+                graph.add(item);
+            }
+        }
+        session.close() ;
+
+        System.out.println(graph.toString());
+        return graph;
     }
 
     private static abstract class GraphItem {
@@ -38,6 +77,7 @@ public class Neo4JRepository {
             GraphItem graphItem = (GraphItem) o;
 
             return id == graphItem.id;
+
         }
 
         @Override
@@ -69,4 +109,12 @@ public class Neo4JRepository {
             this.value = value;
         }
     }
+
+    public static void main(String[] args) {
+        Neo4JRepository test = new Neo4JRepository();
+        test.getConnectionsToKevinBacon("Cruise, Tom");
+    }
+
 }
+
+
