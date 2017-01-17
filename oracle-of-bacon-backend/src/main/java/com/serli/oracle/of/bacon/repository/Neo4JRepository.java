@@ -22,7 +22,7 @@ public class Neo4JRepository {
         driver = GraphDatabase.driver("bolt://localhost:7687", AuthTokens.basic("neo4j", "cardou"));
     }
 
-    public List<?> getConnectionsToKevinBacon(String actorName) {
+    public List<GraphItem> getConnectionsToBacon(String actorName) {
         Session session = driver.session();
         StatementResult result = session.run("MATCH p=shortestPath(\n" +
                 "  (bacon:Actors {name: \"Bacon, Kevin (I)\"})-[*]-(relation:Actors {name: actorName})\n" +
@@ -60,6 +60,30 @@ public class Neo4JRepository {
 
         System.out.println(graph.toString());
         return graph;
+    }
+
+    public String parseList(List<GraphItem> list){
+        String result="[\n";
+        for(GraphItem i: list){
+
+            result+="{\n" +
+                        "\"data\": {\n" +
+                            "\"id\": " + i.id + ",\n";
+            if(i instanceof GraphNode){
+                result+="\"type\":"+((GraphNode) i).type + ",\n"
+                        + "\"value\":"+ ((GraphNode) i).value + "\n";
+            }
+            else if(i instanceof GraphEdge){
+                result+="\"source\":"+((GraphEdge) i).source + ",\n"
+                        + "\"target\":"+((GraphEdge) i).target + ",\n"
+                        + "\"value\":"+ ((GraphNode) i).value + "\n";
+            }
+
+            result+="}\n" + "},\n";
+        }
+
+        result+="]";
+        return result;
     }
 
     private static abstract class GraphItem {
@@ -112,7 +136,7 @@ public class Neo4JRepository {
 
     public static void main(String[] args) {
         Neo4JRepository test = new Neo4JRepository();
-        test.getConnectionsToKevinBacon("Cruise, Tom");
+        test.getConnectionsToBacon("Cruise, Tom");
     }
 
 }
