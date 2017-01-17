@@ -23,10 +23,9 @@ public class APIEndPoint {
     }
 
     @Get("bacon-to?actor=:actorName")
-    public String getConnectionsToKevinBacon(String actorName) {
-
+    public List<?> getConnectionsToKevinBacon(String actorName) {
         Neo4JRepository repo = new Neo4JRepository();
-        return repo.parseList(repo.getConnectionsToBacon(actorName));
+        return repo.getConnectionsToBacon(actorName);
     }
 
     @Get("suggest?q=:searchQuery")

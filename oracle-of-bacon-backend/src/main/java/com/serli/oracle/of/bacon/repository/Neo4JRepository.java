@@ -9,10 +9,11 @@ import org.neo4j.driver.v1.*;
 import org.neo4j.driver.v1.types.Node;
 import org.neo4j.driver.v1.types.Relationship;
 
-import static org.neo4j.driver.v1.Values.parameters;
-
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 
 public class Neo4JRepository {
@@ -22,69 +23,84 @@ public class Neo4JRepository {
         driver = GraphDatabase.driver("bolt://localhost:7687", AuthTokens.basic("neo4j", "cardou"));
     }
 
-    public List<GraphItem> getConnectionsToBacon(String actorName) {
+    public List<?> getConnectionsToBacon(String actorName) {
         Session session = driver.session();
+
         StatementResult result = session.run("MATCH p=shortestPath(\n" +
-                "  (bacon:Actors {name: \"Bacon, Kevin (I)\"})-[*]-(relation:Actors {name: actorName})\n" +
+                "  (bacon:Actors {name: 'Bacon, Kevin (I)'})-[*]-(relation:Actors {name: '" + actorName + "'})\n" +
                 ")\n" +
-                "RETURN p");
+                "RETURN nodes(p) as nodes,relationships(p) as relations");
 
-        List<GraphItem> graph = new ArrayList<GraphItem>() ;
+        List<GraphItem> graph = new ArrayList<GraphItem>();
 
-        System.out.println(result.toString()) ;
 
         while (result.hasNext()) {
-            Record record = result.next() ;
-            GraphItem item ;
+            Record record = result.next();
+            GraphItem item;
 
-            for (Value value:record.get("nodes").values()) {
+            for (Value value : record.get("nodes").values()) {
                 Node node = value.asNode();
 
                 if (node.containsKey("name")) {
-                    item = new GraphNode(node.id(), node.get("name").asString(), "Actors");
+                    item = new GraphNode(node.id(), node.get("name").asString(), "Actor");
                 } else {
-                    item = new GraphNode(node.id(), node.get("title").asString(), "Movies");
+                    item = new GraphNode(node.id(), node.get("title").asString(), "Movie");
                 }
                 graph.add(item);
             }
 
-            for (Value value:record.get("relations").values()) {
+            for (Value value : record.get("relations").values()) {
                 Relationship relation = value.asRelationship();
 
-                item = new GraphEdge(relation.id(), relation.startNodeId(), relation.endNodeId(), "PLAYED_IN") ;
+                item = new GraphEdge(relation.id(), relation.startNodeId(), relation.endNodeId(), "PLAYED_IN");
 
                 graph.add(item);
             }
         }
-        session.close() ;
 
-        System.out.println(graph.toString());
-        return graph;
+        session.close();
+
+
+        return graph.stream()
+                .map(graphItem -> new DataObject(graphItem))
+                .collect(Collectors.toList());
     }
 
-    public String parseList(List<GraphItem> list){
-        String result="[\n";
-        for(GraphItem i: list){
+    private static class DataObject {
+        private final GraphItem data;
 
-            result+="{\n" +
-                        "\"data\": {\n" +
-                            "\"id\": " + i.id + ",\n";
-            if(i instanceof GraphNode){
-                result+="\"type\":"+((GraphNode) i).type + ",\n"
-                        + "\"value\":"+ ((GraphNode) i).value + "\n";
-            }
-            else if(i instanceof GraphEdge){
-                result+="\"source\":"+((GraphEdge) i).source + ",\n"
-                        + "\"target\":"+((GraphEdge) i).target + ",\n"
-                        + "\"value\":"+ ((GraphNode) i).value + "\n";
-            }
-
-            result+="}\n" + "},\n";
+        private DataObject(GraphItem data) {
+            this.data = data;
         }
-
-        result+="]";
-        return result;
     }
+
+    //TODO delete that, no need to parse it it's done automatically
+//    public String parseList(List<GraphItem> list) {
+//        System.out.println(new Gson().toJson(list.get(0)));
+//        return "";
+//        String result="[\n";
+//        for(GraphItem i: list){
+//
+//            result+="{\n" +
+//                        "\"data\": {\n" +
+//                            "\"id\": " + i.id + ",\n";
+//            if(i instanceof GraphNode){
+//                String type = ((GraphNode) i).type;
+//                result+="\"type\": \""+(type.substring(0, type.length()-1)) + "\",\n"
+//                        + "\"value\": \""+ ((GraphNode) i).value + "\"\n";
+//            }
+//            else if(i instanceof GraphEdge){
+//                result+="\"source\": "+((GraphEdge) i).source + ",\n"
+//                        + "\"target\": "+((GraphEdge) i).target + ",\n"
+//                        + "\"value\": \""+ ((GraphEdge) i).value + "\"\n";
+//            }
+//
+//            result+="}\n" + "}\n";
+//        }
+//
+//        result+="]";
+//        return result;
+//    }
 
     private static abstract class GraphItem {
         public final long id;
@@ -133,12 +149,6 @@ public class Neo4JRepository {
             this.value = value;
         }
     }
-
-    public static void main(String[] args) {
-        Neo4JRepository test = new Neo4JRepository();
-        test.getConnectionsToBacon("Cruise, Tom");
-    }
-
 }
 
 
