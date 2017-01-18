@@ -74,34 +74,6 @@ public class Neo4JRepository {
         }
     }
 
-    //TODO delete that, no need to parse it it's done automatically
-//    public String parseList(List<GraphItem> list) {
-//        System.out.println(new Gson().toJson(list.get(0)));
-//        return "";
-//        String result="[\n";
-//        for(GraphItem i: list){
-//
-//            result+="{\n" +
-//                        "\"data\": {\n" +
-//                            "\"id\": " + i.id + ",\n";
-//            if(i instanceof GraphNode){
-//                String type = ((GraphNode) i).type;
-//                result+="\"type\": \""+(type.substring(0, type.length()-1)) + "\",\n"
-//                        + "\"value\": \""+ ((GraphNode) i).value + "\"\n";
-//            }
-//            else if(i instanceof GraphEdge){
-//                result+="\"source\": "+((GraphEdge) i).source + ",\n"
-//                        + "\"target\": "+((GraphEdge) i).target + ",\n"
-//                        + "\"value\": \""+ ((GraphEdge) i).value + "\"\n";
-//            }
-//
-//            result+="}\n" + "}\n";
-//        }
-//
-//        result+="]";
-//        return result;
-//    }
-
     private static abstract class GraphItem {
         public final long id;
 

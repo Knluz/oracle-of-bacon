@@ -1,5 +1,6 @@
 package com.serli.oracle.of.bacon.api;
 
+import com.mongodb.util.JSON;
 import com.serli.oracle.of.bacon.repository.ElasticSearchRepository;
 import com.serli.oracle.of.bacon.repository.MongoDbRepository;
 import com.serli.oracle.of.bacon.repository.Neo4JRepository;
@@ -44,11 +45,6 @@ public class APIEndPoint {
 
     @Get("actor?name=:actorName")
     public String getActorByName(String actorName) {
-        return mongoDbRepository.getActorByName(actorName).toString();
-    }
-
-    public static void main(String[] args) {
-        APIEndPoint apiEndPoint = new APIEndPoint();
-        System.out.println(apiEndPoint.getActorByName("Tom Hanks"));
+        return mongoDbRepository.getActorByName(actorName).map(actor -> actor.toJson()).orElse("{}");
     }
 }

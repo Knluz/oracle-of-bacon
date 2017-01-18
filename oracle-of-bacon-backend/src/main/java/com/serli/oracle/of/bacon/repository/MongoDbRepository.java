@@ -1,5 +1,8 @@
 package com.serli.oracle.of.bacon.repository;
 
+import com.fasterxml.jackson.databind.util.JSONPObject;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.mongodb.*;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
@@ -22,11 +25,11 @@ public class MongoDbRepository {
         DB database = mongoClient.getDB("workshop");
         DBCollection collection = database.getCollection("actors");
 
-        DBObject query = new BasicDBObject("name", "name");
+        DBObject query = new BasicDBObject("name", name);
         DBCursor cursor = collection.find(query);
 
-        Document actor = (Document)cursor.one();
+        DBObject actor = cursor.one(); // if we're sure the name is unique, we can use cursor.one();
 
-        return Optional.ofNullable(actor);
+        return Optional.ofNullable(Document.parse(JSON.serialize(actor)));
     }
 }
