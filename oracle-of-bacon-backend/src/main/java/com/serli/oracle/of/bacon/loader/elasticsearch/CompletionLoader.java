@@ -10,7 +10,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class CompletionLoader {
     private static AtomicInteger count = new AtomicInteger(0);
@@ -24,35 +26,33 @@ public class CompletionLoader {
 
         String inputFilePath = args[0];
         JestClient client = ElasticSearchRepository.createClient();
-        ArrayList<Index> actorList = new ArrayList<Index>();
+
+
+        Bulk.Builder builder = new Bulk.Builder().defaultIndex("actor").defaultType("name");
 
         try (BufferedReader bufferedReader = Files.newBufferedReader(Paths.get(inputFilePath))) {
-            bufferedReader.lines()
-                    .forEach(line -> {
-                        if(actorList.size()<100000) {
-                            actorList.add(new Index.Builder(line).build());
-                            System.out.println(actorList.size());
-                        }
+            List<String> list = bufferedReader.lines().map(String::new).collect(Collectors.toCollection(ArrayList::new));
+            System.out.println(list.size());
 
-                        else{
+            for (int i = 0; i < list.size(); i++) {
+                System.out.println(list.get(i));
+                String res = "{ \"name\" : " + list.get(i) + "}";
+                builder.addAction(new Index.Builder(res).build());
 
-                            Bulk bulk = new Bulk.Builder()
-                                    .defaultIndex("oracle-of-bacon")
-                                    .defaultType("actor")
-                                    .addAction(actorList)
-                                    .build();
+                if (i % 10000 == 0) {
+                    Bulk bulk = builder.build();
+                    client.execute(bulk);
+                    builder = new Bulk.Builder()
+                            .defaultIndex("actor")
+                            .defaultType("name");
+                    System.out.println("10000 added");
+                }
+            }
 
-                            try {
-                                client.execute(bulk);
-                                System.out.println("client execute");
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                            actorList.clear();
-                        }
-                    });
+            Bulk bulk = builder.build();
+            client.execute(bulk);
+            System.out.println(list.size() % 10000 + " added");
         }
-
-        System.out.println("Inserted total of " + count.get() + " actors");
+            System.out.println("Inserted total of " + count.get() + " actors");
+        }
     }
-}
