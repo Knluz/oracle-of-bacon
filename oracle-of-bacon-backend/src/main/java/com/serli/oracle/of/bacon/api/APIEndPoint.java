@@ -7,6 +7,7 @@ import com.serli.oracle.of.bacon.repository.Neo4JRepository;
 import com.serli.oracle.of.bacon.repository.RedisRepository;
 import net.codestory.http.annotations.Get;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -30,12 +31,8 @@ public class APIEndPoint {
     }
 
     @Get("suggest?q=:searchQuery")
-    public List<String> getActorSuggestion(String searchQuery) {
-        return Arrays.asList("Niro, Chel",
-                "Senanayake, Niro",
-                "Niro, Juan Carlos",
-                "de la Rua, Niro",
-                "Niro, Simão");
+    public List<String> getActorSuggestion(String searchQuery) throws IOException {
+        return elasticSearchRepository.getActorsSuggests(searchQuery);
     }
 
     @Get("last-searches")
