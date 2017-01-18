@@ -24,8 +24,8 @@ public class APIEndPoint {
 
     @Get("bacon-to?actor=:actorName")
     public List<?> getConnectionsToKevinBacon(String actorName) {
-        Neo4JRepository repo = new Neo4JRepository();
-        return repo.getConnectionsToBacon(actorName);
+        redisRepository.addSearch(actorName); // adds the name searched to the list of last 10 searches
+        return neo4JRepository.getConnectionsToBacon(actorName);
     }
 
     @Get("suggest?q=:searchQuery")
@@ -39,11 +39,7 @@ public class APIEndPoint {
 
     @Get("last-searches")
     public List<String> last10Searches() {
-        return Arrays.asList("Peckinpah, Sam",
-                "Robbins, Tim (I)",
-                "Freeman, Morgan (I)",
-                "De Niro, Robert",
-                "Pacino, Al (I)");
+        return redisRepository.getLastTenSearches();
     }
 
     @Get("actor?name=:actorName")
