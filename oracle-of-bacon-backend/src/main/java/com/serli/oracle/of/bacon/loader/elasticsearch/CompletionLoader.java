@@ -2,11 +2,14 @@ package com.serli.oracle.of.bacon.loader.elasticsearch;
 
 import com.serli.oracle.of.bacon.repository.ElasticSearchRepository;
 import io.searchbox.client.JestClient;
+import io.searchbox.core.Bulk;
+import io.searchbox.core.Index;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class CompletionLoader {
@@ -21,12 +24,32 @@ public class CompletionLoader {
 
         String inputFilePath = args[0];
         JestClient client = ElasticSearchRepository.createClient();
+        ArrayList<Index> actorList = new ArrayList<Index>();
 
         try (BufferedReader bufferedReader = Files.newBufferedReader(Paths.get(inputFilePath))) {
             bufferedReader.lines()
                     .forEach(line -> {
-                        //TODO ElasticSearch insert
-                        System.out.println(line);
+                        if(actorList.size()<100000) {
+                            actorList.add(new Index.Builder(line).build());
+                            System.out.println(actorList.size());
+                        }
+
+                        else{
+
+                            Bulk bulk = new Bulk.Builder()
+                                    .defaultIndex("oracle-of-bacon")
+                                    .defaultType("actor")
+                                    .addAction(actorList)
+                                    .build();
+
+                            try {
+                                client.execute(bulk);
+                                System.out.println("client execute");
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            actorList.clear();
+                        }
                     });
         }
 
